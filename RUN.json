@@ -7,19 +7,52 @@
       "stack": "python",
       "kind": "server",
       "install": [
-        ["${python}", "-m", "pip", "install", "-q", "-r", "requirements.txt"]
+        [
+          "${python}",
+          "-m",
+          "pip",
+          "install",
+          "-q",
+          "-r",
+          "requirements.txt"
+        ]
       ],
-      "start": ["${python}", "-m", "uvicorn", "app.main:app", "--port", "${PORT}"],
+      "start": [
+        "${python}",
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--port",
+        "${PORT}"
+      ],
       "port": 8000,
       "port_env": "PORT",
-      "health": { "path": "/api/health", "expect_status": [200] },
+      "health": {
+        "path": "/api/health",
+        "expect_status": [
+          200
+        ]
+      },
       "env": {
-        "DATABASE_URL": { "dev": "sqlite:///./wardrobe.db" },
-        "JWT_SECRET": { "generate": "hex", "bytes": 32 },
-        "JWT_ALGORITHM": { "dev": "HS256" },
-        "FRONTEND_ORIGIN": { "dev": "${service:frontend.origin}" },
-        "UPLOAD_DIR": { "dev": "./uploads" },
-        "MAX_UPLOAD_MB": { "dev": "5" }
+        "DATABASE_URL": {
+          "dev": "sqlite:///./wardrobe.db"
+        },
+        "JWT_SECRET": {
+          "generate": "hex",
+          "bytes": 32
+        },
+        "JWT_ALGORITHM": {
+          "dev": "HS256"
+        },
+        "FRONTEND_ORIGIN": {
+          "dev": "${service:frontend.origin}"
+        },
+        "UPLOAD_DIR": {
+          "dev": "./uploads"
+        },
+        "MAX_UPLOAD_MB": {
+          "dev": "5"
+        }
       }
     },
     {
@@ -27,13 +60,88 @@
       "dir": "frontend",
       "stack": "web-vite",
       "kind": "server",
-      "install": [["npm", "ci"]],
-      "start": ["npm", "run", "dev", "--", "--host", "127.0.0.1", "--port", "${PORT}"],
+      "install": [
+        [
+          "npm",
+          "ci"
+        ]
+      ],
+      "start": [
+        "npm",
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "${PORT}"
+      ],
       "port": 5173,
       "port_env": "PORT",
-      "health": { "path": "/", "expect_status": [200] },
+      "health": {
+        "path": "/",
+        "expect_status": [
+          200
+        ]
+      },
       "env": {
-        "VITE_API_TARGET": { "dev": "${service:api.origin}" }
+        "VITE_API_TARGET": {
+          "dev": "${service:api.origin}"
+        }
+      }
+    },
+    {
+      "name": "backend",
+      "dir": "backend",
+      "stack": "python",
+      "kind": "server",
+      "install": [
+        [
+          "${python}",
+          "-m",
+          "pip",
+          "install",
+          "-q",
+          "-r",
+          "requirements.txt"
+        ]
+      ],
+      "start": [
+        "${python}",
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--port",
+        "${PORT}"
+      ],
+      "port": 8000,
+      "port_env": "PORT",
+      "health": {
+        "path": "/api/health",
+        "expect_status": [
+          200
+        ]
+      },
+      "env": {
+        "DATABASE_URL": {
+          "dev": "sqlite:///./wardrobe.db"
+        },
+        "JWT_SECRET": {
+          "generate": "hex",
+          "bytes": 32
+        },
+        "JWT_ALGORITHM": {
+          "dev": "HS256"
+        },
+        "FRONTEND_ORIGIN": {
+          "dev": "http://localhost:5173"
+        },
+        "UPLOAD_DIR": {
+          "dev": "./uploads"
+        },
+        "MAX_UPLOAD_MB": {
+          "dev": "5"
+        }
       }
     }
   ]
