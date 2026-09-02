@@ -170,7 +170,8 @@ describe('Outfit erstellen', () => {
 
 describe('Outfits anzeigen', () => {
   it('lists saved outfits with their item thumbnails', async () => {
-    installFetch({
+    localStorage.setItem('token', 'tok-1')
+    const fetchMock = installFetch({
       'GET /outfits': () => jsonResponse(200, [outfit]),
       'GET /api/items/1/image': () => blobResponse(200),
       'GET /api/items/2/image': () => blobResponse(200),
@@ -191,6 +192,38 @@ describe('Outfits anzeigen', () => {
       expect(thumbnails[1]).toHaveAttribute('src', 'blob:mock-url')
     })
     expect(screen.getByText('2 Teile')).toBeInTheDocument()
+
+    const imageCalls = fetchMock.mock.calls.filter(([url]) =>
+      String(url).endsWith('/image'),
+    )
+    expect(imageCalls).toHaveLength(2)
+    for (const [, options] of imageCalls) {
+      expect(options.headers.Authorization).toBe('Bearer tok-1')
+    }
+  })
+
+  it('shows a placeholder instead of an image when an item image returns 401', async () => {
+    localStorage.setItem('token', 'tok-1')
+    installFetch({
+      'GET /outfits': () => jsonResponse(200, [outfit]),
+      'GET /api/items/1/image': () => blobResponse(401),
+      'GET /api/items/2/image': () => blobResponse(401),
+    })
+
+    renderOutfits()
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Abend' })).toBeInTheDocument()
+    })
+
+    await waitFor(() => {
+      expect(document.querySelector('img')).toBeNull()
+    })
+    const placeholders = screen.getAllByRole('img')
+    expect(placeholders).toHaveLength(2)
+    for (const placeholder of placeholders) {
+      expect(placeholder.tagName).toBe('DIV')
+    }
   })
 
   it('shows an empty state when no outfits exist', async () => {
