@@ -57,7 +57,7 @@ function installFetch(handlers) {
     const method = (options.method || 'GET').toUpperCase()
     const path = String(url)
 
-    if (/\/api\/items\/\d+\/image$/.test(path)) {
+    if (/\/api\/items\/\d+\/image(\?.*)?$/.test(path)) {
       return handlers.image ? handlers.image({ path }) : blobResponse(200)
     }
     if (method === 'GET' && path === '/api/items') {
@@ -207,6 +207,46 @@ describe('Wardrobe – Bearbeiten', () => {
     })
     expect(screen.getByText('Kleidungsstück gespeichert.')).toBeInTheDocument()
     expect(screen.queryByText('Rotes Kleid')).not.toBeInTheDocument()
+  })
+
+  it('re-fetches the image after editing with a new image', async () => {
+    let items = [...baseItems]
+    let imageCalls = 0
+    installFetch({
+      list: () => jsonResponse(200, items),
+      patch: ({ path, body }) => {
+        const id = itemIdFromPath(path)
+        const updated = { ...items.find((item) => item.id === id), name: body.get('name') }
+        items = items.map((item) => (item.id === id ? updated : item))
+        return jsonResponse(200, updated)
+      },
+      image: () => {
+        imageCalls += 1
+        return blobResponse(200)
+      },
+    })
+
+    render(<Wardrobe />)
+    await waitFor(() => {
+      expect(screen.getByText('Rotes Kleid')).toBeInTheDocument()
+    })
+    expect(imageCalls).toBe(baseItems.length)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rotes Kleid bearbeiten' }))
+    const nameInput = await screen.findByLabelText('Name')
+    fireEvent.change(nameInput, { target: { value: 'Rotes Abendkleid' } })
+    const file = new File(['new-image'], 'new.jpg', { type: 'image/jpeg' })
+    fireEvent.change(screen.getByLabelText('Bild', { selector: 'input' }), {
+      target: { files: [file] },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Rotes Abendkleid')).toBeInTheDocument()
+    })
+    await waitFor(() => {
+      expect(imageCalls).toBe(baseItems.length + 1)
+    })
   })
 })
 

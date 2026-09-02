@@ -58,7 +58,7 @@ function ImagePlaceholder() {
   )
 }
 
-function ItemCard({ item, onEdit, onDelete }) {
+function ItemCard({ item, onEdit, onDelete, imageVersion }) {
   const [objectUrl, setObjectUrl] = useState(null)
   const [failed, setFailed] = useState(false)
 
@@ -73,7 +73,8 @@ function ItemCard({ item, onEdit, onDelete }) {
         if (token) {
           headers.Authorization = `Bearer ${token}`
         }
-        const response = await fetch(item.image_url, { headers })
+        const cacheBuster = imageVersion ? `?v=${imageVersion}` : ''
+        const response = await fetch(`${item.image_url}${cacheBuster}`, { headers })
         if (!response.ok) {
           throw new Error('Bild konnte nicht geladen werden.')
         }
@@ -98,7 +99,7 @@ function ItemCard({ item, onEdit, onDelete }) {
         URL.revokeObjectURL(url)
       }
     }
-  }, [item.image_url])
+  }, [item.image_url, imageVersion])
 
   return (
     <article className="tile card card--interactive">
@@ -280,12 +281,10 @@ function ItemForm({ item, onSubmit, onCancel }) {
 
     setSubmitting(true)
     try {
-      if (isEdit) {
-        await api.patch(`/items/${item.id}`, formData)
-      } else {
-        await api.post('/items', formData)
-      }
-      onSubmit()
+      const saved = isEdit
+        ? await api.patch(`/items/${item.id}`, formData)
+        : await api.post('/items', formData)
+      onSubmit(saved)
     } catch (err) {
       setError(errorMessage(err, 'Speichern fehlgeschlagen.'))
       setSubmitting(false)
@@ -439,6 +438,7 @@ function Wardrobe() {
   const [deleting, setDeleting] = useState(null)
   const [toast, setToast] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [imageVersions, setImageVersions] = useState({})
 
   useEffect(() => {
     let cancelled = false
@@ -508,10 +508,16 @@ function Wardrobe() {
     setFormOpen(true)
   }
 
-  function handleSaved() {
+  function handleSaved(savedItem) {
     setFormOpen(false)
     setEditing(null)
     setRefreshKey((key) => key + 1)
+    if (savedItem?.id) {
+      setImageVersions((versions) => ({
+        ...versions,
+        [savedItem.id]: (versions[savedItem.id] || 0) + 1,
+      }))
+    }
     showToast('Kleidungsstück gespeichert.', 'success')
   }
 
@@ -600,6 +606,7 @@ function Wardrobe() {
                 <ItemCard
                   key={item.id}
                   item={item}
+                  imageVersion={imageVersions[item.id] || 0}
                   onEdit={() => openEdit(item)}
                   onDelete={() => requestDelete(item)}
                 />
