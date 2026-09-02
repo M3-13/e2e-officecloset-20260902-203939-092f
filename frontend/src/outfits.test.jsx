@@ -35,6 +35,20 @@ function emptyResponse(status) {
   }
 }
 
+function blobResponse(status = 200) {
+  const blob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/jpeg' })
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: { get: () => 'image/jpeg' },
+    json: async () => {
+      throw new Error('no json body')
+    },
+    text: async () => '',
+    blob: async () => blob,
+  }
+}
+
 function installFetch(routes) {
   const fn = vi.fn(async (url, options = {}) => {
     const method = (options.method || 'GET').toUpperCase()
@@ -79,6 +93,12 @@ function renderOutfits() {
     </MemoryRouter>,
   )
 }
+
+// jsdom has no real createObjectURL/revokeObjectURL; keep stubs installed for the
+// whole file so effect cleanups (which may run after afterEach restores globals)
+// never throw.
+URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+URL.revokeObjectURL = vi.fn()
 
 beforeEach(() => {
   vi.stubGlobal('localStorage', createStorage())
@@ -152,6 +172,8 @@ describe('Outfits anzeigen', () => {
   it('lists saved outfits with their item thumbnails', async () => {
     installFetch({
       'GET /outfits': () => jsonResponse(200, [outfit]),
+      'GET /api/items/1/image': () => blobResponse(200),
+      'GET /api/items/2/image': () => blobResponse(200),
     })
 
     renderOutfits()
@@ -160,10 +182,14 @@ describe('Outfits anzeigen', () => {
       expect(screen.getByRole('heading', { name: 'Abend' })).toBeInTheDocument()
     })
 
-    const thumbnails = screen.getAllByRole('img')
-    expect(thumbnails).toHaveLength(2)
-    expect(thumbnails[0]).toHaveAttribute('src', '/api/items/1/image')
-    expect(thumbnails[1]).toHaveAttribute('src', '/api/items/2/image')
+    await waitFor(() => {
+      const thumbnails = screen.getAllByRole('img')
+      expect(thumbnails).toHaveLength(2)
+      expect(thumbnails[0].tagName).toBe('IMG')
+      expect(thumbnails[0]).toHaveAttribute('src', 'blob:mock-url')
+      expect(thumbnails[1].tagName).toBe('IMG')
+      expect(thumbnails[1]).toHaveAttribute('src', 'blob:mock-url')
+    })
     expect(screen.getByText('2 Teile')).toBeInTheDocument()
   })
 

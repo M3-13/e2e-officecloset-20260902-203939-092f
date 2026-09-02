@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { api } from '../api/client.js'
+import AuthImage from '../components/AuthImage.jsx'
 import '../styles/outfits.css'
 
 function Outfits() {
@@ -124,10 +125,10 @@ function Outfits() {
                   <span className="outfit-card__empty">Keine Teile</span>
                 ) : (
                   outfit.items.map((item) => (
-                    <img
+                    <AuthImage
                       key={item.id}
                       className="outfit-card__thumb"
-                      src={item.image_url}
+                      imageUrl={item.image_url}
                       alt={item.name}
                       title={item.name}
                     />

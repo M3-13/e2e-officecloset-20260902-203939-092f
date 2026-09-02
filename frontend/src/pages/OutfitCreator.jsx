@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client.js'
+import AuthImage from '../components/AuthImage.jsx'
 import '../styles/outfits.css'
 
 function OutfitCreator() {
@@ -171,7 +172,7 @@ function OutfitCreator() {
                       onClick={() => toggleItem(item.id)}
                     >
                       <span className="garment-tile__image">
-                        <img src={item.image_url} alt={item.name} />
+                        <AuthImage imageUrl={item.image_url} alt={item.name} />
                       </span>
                       <span className="garment-tile__name">{item.name}</span>
                       <span className="garment-tile__meta">
@@ -208,7 +209,7 @@ function OutfitCreator() {
               ) : (
                 selectedItems.map((item) => (
                   <div className="selected-item" key={item.id}>
-                    <img className="selected-item__thumb" src={item.image_url} alt="" />
+                    <AuthImage className="selected-item__thumb" imageUrl={item.image_url} alt="" />
                     <span className="selected-item__name">{item.name}</span>
                     <button
                       type="button"
